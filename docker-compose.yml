@@ -1,0 +1,45 @@
+ervices:
+  postgres:
+    image: postgres:16
+    container_name: laptop_price_predictor
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: laptops
+      POSTGRES_USER: myruich
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myruich -d laptops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - course_net
+
+  backend:
+    build: ./backend
+    container_name: laptop_price_predictor_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://myruich:${DB_PASSWORD}@postgres:5432/laptops
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml/models:/app/ml/models:ro   # модель монтується read-only, щоб не перезбирати образ при retrain
+    networks:
+      - course_net
+
+volumes:
+  postgres_data:
+
+networks:
+  course_net:
+    driver: bridge
