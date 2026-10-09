@@ -105,7 +105,7 @@ def remove_outliers(df: pl.DataFrame, column: str, method: str = "iqr", threshol
 
 
 def run_cleaning_pipeline() -> pl.DataFrame:
-    """Головна функція: викликає всі кроки по черзі, повертає очищений df"""
+    """Головна функція: викликає всі кроки по черзі, повертає очищений df """
 
     logger.info("run_cleaning_pipeline function call")
     df = load_raw_data()
