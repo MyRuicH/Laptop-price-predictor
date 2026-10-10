@@ -47,7 +47,7 @@ def parse_cpu(df: pl.DataFrame) -> pl.DataFrame:
 
     logger.info("Parsing CPU information...")
 
-    groups = pl.col("cpu").str.extract_groups(r"(?P<cpu_brand>\w+)\s+(?P<cpu_model>[\w\s]+)\s+(?P<cpu_ghz>[\d\.]+)GHz")
+    groups = pl.col("cpu").str.extract_groups(r"(?P<cpu_brand>\w+)\s+(?P<cpu_model>[\w\s\-]+)\s+(?P<cpu_ghz>[\d\.]+)GHz")
 
     df = df.with_columns([
         groups.struct.field("cpu_brand").alias("cpu_brand"),
@@ -126,7 +126,7 @@ def normalize_categoricals(df: pl.DataFrame) -> pl.DataFrame:
     df = df.with_columns([
         pl.col("company").cast(pl.Categorical, strict=False).fill_null("Unknown"),
         pl.col("type_name").cast(tn_cat, strict=False).fill_null("Unknown"),
-        pl.col("opsys").cast(os_cat, strict=False).fill_null("Unknown"),
+        pl.col("opSys").cast(os_cat, strict=False).fill_null("Unknown"),
         pl.col("cpu_brand").cast(cpb_cat, strict=False).fill_null("Unknown"),
         pl.col("gpu_brand").cast(gpb_cat, strict=False).fill_null("Unknown"),
     ])
@@ -144,9 +144,13 @@ def build_feature_set(cleaned_df: pl.DataFrame) -> pl.DataFrame:
     df = parse_memory(df)
     df = parse_gpu(df)
     df = cast_numeric_types(df)
-    parsed_df = normalize_categoricals(df)
-    
+
     df = df.rename({"raw_laps_id": "raw_id", "opsys": "opSys"})
 
+    parsed_df = normalize_categoricals(df)
+    
     logger.info("Feature set built successfully.")
     return parsed_df
+
+
+    
