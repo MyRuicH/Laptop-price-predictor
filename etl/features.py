@@ -33,8 +33,7 @@ def parse_screen_resolution(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("screen_resolution").str.contains(r"(?i)IPS").alias("is_ips"),
         pl.col("screen_resolution").str.contains(r"(?i)Touchscreen").alias("is_touchscreen")
         
-    ])
-    df = df.drop("screen_resolution")
+    ]).drop("screen_resolution")
 
     logger.debug(f"Parsed screen resolution and features: {df.head()}")
     return df
@@ -51,11 +50,10 @@ def parse_cpu(df: pl.DataFrame) -> pl.DataFrame:
 
     df = df.with_columns([
         groups.struct.field("cpu_brand").alias("cpu_brand"),
-        groups.struct.field("cpu_model").alias("cpu_model"),
+        groups.struct.field("cpu_model").alias("cpu_model").str.strip_chars(),
         groups.struct.field("cpu_ghz").cast(pl.Float32).alias("cpu_ghz")
         
-    ])
-    df = df.drop("cpu")
+    ]).drop("cpu")
 
     logger.debug(f"Parsed CPU information: {df.head()}")
     return df
@@ -64,17 +62,16 @@ def parse_cpu(df: pl.DataFrame) -> pl.DataFrame:
 def parse_memory(df: pl.DataFrame) -> pl.DataFrame:
     """ Парсинг стовпця Постійна пам'ять
         Приклад: '256GB SSD' або '1TB HDD + 256GB SSD' ->
-                storage_type: 'SSD'/'HDD'/'Hybrid', storage_gb: 256"""
+                storage_type: 'SSD'/'HDD'/'Hybrid/'Flash Storage', storage_gb: 256"""
 
     logger.info("Parsing memory information...")
 
-    groups = pl.col("memory").str.extract_groups(r"(?P<storage_gb>\d+)(?P<storage_type>GB|TB|SSD|HDD|Hybrid)")
-
+    amount = pl.col("memory").str.extract(r"(\d+(?:\.\d+)?)\s*(?:GB|TB)", 1).cast(pl.Float64)
+    unit   = pl.col("memory").str.extract(r"\d+(?:\.\d+)?\s*(GB|TB)", 1)
     df = df.with_columns([
-        groups.struct.field("storage_gb").cast(pl.Int32).alias("storage_gb"),
-        groups.struct.field("storage_type").alias("storage_type")
-    ])
-    df = df.drop("memory")
+        pl.when(unit == "TB").then(amount * 1000).otherwise(amount).alias("storage_gb"),
+        pl.col("memory").str.extract(r"(SSD|HDD|Hybrid|Flash Storage)", 1).alias("storage_type"),
+    ]).drop("memory")
 
     logger.debug(f"Parsed memory information: {df.head()}")
     return df
@@ -90,10 +87,9 @@ def parse_gpu(df: pl.DataFrame) -> pl.DataFrame:
 
     df = df.with_columns([
         groups.struct.field("gpu_brand").alias("gpu_brand"),
-        groups.struct.field("gpu_model").alias("gpu_model")
-    ])
-    df = df.drop("gpu")
-
+        groups.struct.field("gpu_model").alias("gpu_model").str.strip_chars()
+    ]).drop("gpu")
+  
     logger.debug(f"Parsed GPU information: {df.head()}")
     return df
 
@@ -144,6 +140,14 @@ def build_feature_set(cleaned_df: pl.DataFrame) -> pl.DataFrame:
     df = parse_memory(df)
     df = parse_gpu(df)
     df = cast_numeric_types(df)
+
+    df = df.with_columns(
+    pl.concat_str(
+        ["cpu_model", "gpu_model"],
+        separator=" | ",
+        ignore_nulls=False,
+    ).alias("cpu_gpu_pair")
+    )
 
     df = df.rename({"raw_laps_id": "raw_id", "opsys": "opSys"})
 

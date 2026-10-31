@@ -14,12 +14,14 @@ logger = get_logger("db.seed")
 
 CSV_PATH = "data/raw/RawLaptopData.csv"
 
+
 conn = psg.connect(
-    host="localhost",
-    port=5433,
-    dbname="laptops",
-    user="myruich",
-    password=os.getenv("DB_PASSWORD")
+        host="localhost",
+        port=5433,
+        dbname="laptops",
+        user="myruich",
+        password=os.getenv("DB_PASSWORD"),
+
 )
 
 cur = conn.cursor()

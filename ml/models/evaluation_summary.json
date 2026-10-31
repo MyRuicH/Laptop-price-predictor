@@ -1,0 +1,17 @@
+{
+  "n_test": 244,
+  "rmse": 11485.965818915449,
+  "mae": 7778.725305582694,
+  "r2": 0.8682391291669649,
+  "mape_percent": 12.798496136463427,
+  "median_abs_error": 4787.562896729232,
+  "mean_error_bias": 1414.5550582053315,
+  "mean_price": 59575.8923409836,
+  "share_within_10_percent": 45.08196721311475,
+  "share_within_20_percent": 78.68852459016394,
+  "mae_percent_of_mean_price": 13.05683389694112,
+  "best_model_name": "HistGradientBoosting",
+  "cv_rmse_tuned": 12559.524753999736,
+  "test_to_cv_rmse_ratio": 0.9145223281842413,
+  "model_reproduces_saved_predictions": true
+}

@@ -2,6 +2,8 @@ fastapi
 uvicorn[standart]
 scikit-learn
 polars
+pandas
+pyarrow
 psycopg2-binary
 python-dotenv
 pydantic

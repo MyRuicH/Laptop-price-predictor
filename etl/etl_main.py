@@ -1,7 +1,12 @@
+from pathlib import Path
+
 from common.logger import get_logger
 from etl.clean import run_cleaning_pipeline
 from etl.features import build_feature_set
 from etl.db_utils import save_to_table
+
+
+PROCESSED_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "processed"
 
 
 def run_etl_pipline() -> None:
@@ -23,7 +28,7 @@ def run_etl_pipline() -> None:
 
     # Кро 2_5: Збереження оброблених данни у data/processed/ як .parquet - щоб швидко перезавантажувати під час розробки моделі, 
         # не ганяючи щоразу весь пайплайн
-    feature_set.write_parquet("data/processed/feature_set.parquet", compression="snappy")
+    feature_set.write_parquet(PROCESSED_DATA_DIR / "feature_set.parquet", compression="snappy")
     logger.info("Feature set written as parquet seccessfully.")
 
     # Крок 3: Збереження оброблених данх у таблицю laptops_clean 

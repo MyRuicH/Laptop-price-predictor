@@ -2,6 +2,7 @@ import os
 import polars as pl
 import psycopg2 as psg
 
+
 from dotenv import load_dotenv
 from common.logger import get_logger
 
@@ -18,7 +19,8 @@ def get_connection():
         dbname="laptops",
         user="myruich",
         password=os.getenv("DB_PASSWORD"),
-    )
+    
+        )  
 
 
 def load_table_data(table_name: str="raw_laptops") -> pl.DataFrame:
@@ -46,14 +48,14 @@ def save_to_table(df: pl.DataFrame, table_name: str="laptops_clean") -> None:
         for row in df.iter_rows(named=True):
             cur.execute("""
             INSERT INTO laptops_clean(raw_id, company, type_name, inches, screen_width, screen_height, is_ips, is_touchscreen, cpu_brand, cpu_model, 
-            cpu_ghz, ram_gb, storage_type, storage_gb, gpu_brand, gpu_model, opSys, weight, price)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            cpu_ghz, ram_gb, storage_type, storage_gb, gpu_brand, gpu_model, opSys, weight, price, cpu_gpu_pair)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 row["raw_id"], row["company"], row["type_name"], row["inches"], row["screen_width"], row["screen_height"],
                 row["is_ips"], row["is_touchscreen"], row["cpu_brand"], row["cpu_model"], row["cpu_ghz"],
                 row["ram_gb"], row["storage_type"], row["storage_gb"], row["gpu_brand"], row["gpu_model"],
-                row["opSys"], row["weight"], row["price"]
+                row["opSys"], row["weight"], row["price"], row["cpu_gpu_pair"]
             ))
     except Exception as e:
         logger.error(f"Invalid attempting to save data to the table `{table_name}`: {e}")
