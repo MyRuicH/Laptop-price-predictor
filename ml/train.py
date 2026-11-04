@@ -31,7 +31,7 @@ from common.logger import get_logger
 RANDOM_STATE = 67
 N_ITER = 30
 TARGET = "price"
-SERVICE_COLUMNS = {"id", "raw_id", "clean_laps_id", "cpu_brand", "gpu_brand"}
+SERVICE_COLUMNS = {"id", "raw_id", "clean_laps_id"}
 MODELS_DIR = Path(__file__).resolve().parent / "models"
 
 logger = get_logger("ml.train")

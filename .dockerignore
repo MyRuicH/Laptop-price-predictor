@@ -1,0 +1,14 @@
+.git
+.env
+venv/
+.venv/
+__pycache__/
+*.pyc
+data/
+logs/
+docs/
+ml/
+etl/
+db/
+tests/
+*.ipynb

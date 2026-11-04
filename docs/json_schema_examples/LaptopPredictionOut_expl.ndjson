@@ -1,0 +1,15 @@
+{
+  "predicted_price": 57000.0,
+  "price_low": 49700.0,
+  "price_high": 64300.0,
+  "model_name": "HistGradientBoosting",
+  "warnings": []
+}
+
+{
+  "predicted_price": 61200.0,
+  "price_low": 53400.0,
+  "price_high": 69000.0,
+  "model_name": "HistGradientBoosting",
+  "warnings": ["Така комбінація CPU і GPU не зустрічалась у навчальних даних"]
+}

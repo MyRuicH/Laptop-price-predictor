@@ -22,18 +22,31 @@ services:
       - course_net
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: laptop_price_predictor_backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://myruich:${DB_PASSWORD}@postgres:5432/laptops
+      DB_HOST: postgres 
+      DB_PORT: "5432"
+      DB_NAME: laptops
+      DB_USER: myruich
+      DB_PASSWORD: ${DB_PASSWORD}
     ports:
       - "8000:8000"
     volumes:
-      - ./ml/models:/app/ml/models:ro   # модель монтується read-only, щоб не перезбирати образ при retrain
+      - ./ml/models:/app/ml/models:ro
+      - ./logs:/app/logs
+      - ./frontend:/app/frontend:ro  
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - course_net
 

@@ -1,0 +1,19 @@
+{
+"example": {
+    "company": "Lenovo",
+    "type_name": "Notebook",
+    "inches": 15.6,
+    "screen_width": 1920,
+    "screen_height": 1080,
+    "is_ips": true,
+    "is_touchscreen": false,
+    "cpu_model": "Core i5 7200U",
+    "cpu_ghz": 2.5,
+    "ram_gb": 8,
+    "storage_type": "SSD",
+    "storage_gb": 256,
+    "gpu_model": "HD Graphics 620",
+    "opsys": "Windows 10",
+    "weight": 2.0
+}
+}

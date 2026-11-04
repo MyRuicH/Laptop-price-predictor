@@ -12,15 +12,24 @@ load_dotenv()
 logger = get_logger("etl.db_utils")
 
 
-def get_connection():
+def get_connection(connect_timeout: int = 5) -> psg.extensions.connection:
+    """Відкриває нове з'єднання з PostgreSQL.
+
+    Конфігурація йде зі змінних середовища (принцип «12-factor»: налаштування
+    окремо від коду, секрети не потрапляють у репозиторій).
+
+    окремі змінні DB_HOST, DB_PORT, DB_NAME, DB_USER,
+    DB_PASSWORD, значення за замовчуванням збігаються з локальним docker-compose.
+    """
+   
     return psg.connect(
-        host="localhost",
-        port=5433,
-        dbname="laptops",
-        user="myruich",
+        host=os.getenv("DB_HOST", "localhost"),
+        port=os.getenv("DB_PORT", "5433"),   
+        dbname=os.getenv("DB_NAME", "laptops"),
+        user=os.getenv("DB_USER", "myruich"),
         password=os.getenv("DB_PASSWORD"),
-    
-        )  
+        connect_timeout=connect_timeout,
+    )
 
 
 def load_table_data(table_name: str="raw_laptops") -> pl.DataFrame:
