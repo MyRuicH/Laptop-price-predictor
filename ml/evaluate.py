@@ -28,6 +28,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from sklearn.inspection import permutation_importance
+from sklearn.utils import Bunch
 from sklearn.metrics import (
     mean_absolute_error,
     mean_absolute_percentage_error,
@@ -37,10 +38,10 @@ from sklearn.metrics import (
 
 
 from common.logger import get_logger
+from common.currency import CURRENCY, PRICE_UNIT
 
 
 RANDOM_STATE = 67
-PRICE_UNIT = " грн"          
 MIN_SEGMENT_SIZE = 10  
 TOP_N_FEATURES = 15
 
@@ -156,6 +157,7 @@ def compute_summary(pred: pd.DataFrame, metrics: dict) -> dict:
     relative_error = residual.abs() / y
 
     summary = {
+        "currency": CURRENCY,
         "n_test": int(len(pred)),
         "rmse": float(np.sqrt(mean_squared_error(y, p))),
         "mae": float(mean_absolute_error(y, p)),
@@ -259,10 +261,14 @@ def compute_importance(model_path: Path, pred: pd.DataFrame, feature_columns: li
         random_state=RANDOM_STATE,
         n_jobs=1,
     )
+    # Для одного scoring sklearn повертає Bunch; dict використовується
+    # лише для декількох метрик. Не маскуємо неочікуваний формат результату.
+    if not isinstance(result, Bunch):
+        raise TypeError("Expected a single-metric permutation importance result")
     importance = pd.DataFrame({
         "feature": feature_columns,
-        "importance_mean": result.importances_mean,
-        "importance_std": result.importances_std,
+        "importance_mean": np.asarray(result["importances_mean"], dtype=float),
+        "importance_std": np.asarray(result["importances_std"], dtype=float),
     }).sort_values("importance_mean", ascending=False)
     return importance, max_diff
 
@@ -293,7 +299,7 @@ def plot_pred_vs_actual(pred: pd.DataFrame, summary: dict, figure_dirs: list) ->
 def plot_residuals(pred: pd.DataFrame, summary: dict, figure_dirs: list) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
-    sns.histplot(pred["residual"], bins=30, kde=True, ax=axes[0])
+    sns.histplot(x=pred["residual"].to_numpy(dtype=float), bins=30, kde=True, ax=axes[0])
     axes[0].axvline(0, color="crimson", ls="--")
     axes[0].axvline(summary["mean_error_bias"], color="darkorange", ls=":",
                     label=f"Середнє = {summary['mean_error_bias']:,.0f}".replace(",", " "))
@@ -324,8 +330,8 @@ def plot_model_comparison(cv: pd.DataFrame, summary: dict, figure_dirs: list) ->
                label=f"Тест, {best}: RMSE = {summary['rmse']:,.0f}".replace(",", " "))
 
     ax.set_xticks(x)
-    ax.set_xticklabels([MODEL_LABELS.get(m, m) for m in cv["model"]])
-    ax.set(ylabel="RMSE", title="Порівняння моделей за RMSE (менше — краще)")
+    ax.set_xticklabels([MODEL_LABELS.get(str(m), str(m)) for m in cv["model"].tolist()])
+    ax.set(ylabel=price_label("RMSE"), title="Порівняння моделей за RMSE (менше — краще)")
     ax.grid(axis="x", visible=False)
     format_money_axis(ax, "y")
     ax.legend()
@@ -342,8 +348,8 @@ def plot_overfitting(cv: pd.DataFrame, figure_dirs: list) -> None:
     ax.bar(x + width / 2, data["cv_rmse_mean"], width, yerr=data["cv_rmse_std"],
            capsize=4, label="Валідація (CV)")
     ax.set_xticks(x)
-    ax.set_xticklabels([MODEL_LABELS.get(m, m) for m in data["model"]])
-    ax.set(ylabel="RMSE", title="RMSE на навчанні та на валідації (до тюнінгу)")
+    ax.set_xticklabels([MODEL_LABELS.get(str(m), str(m)) for m in data["model"].tolist()])
+    ax.set(ylabel=price_label("RMSE"), title="RMSE на навчанні та на валідації (до тюнінгу)")
     ax.grid(axis="x", visible=False)
     format_money_axis(ax, "y")
     ax.legend()
@@ -374,11 +380,14 @@ def plot_segments(segments: pd.DataFrame, figure_dirs: list) -> None:
 
 def plot_importance(importance: pd.DataFrame, figure_dirs: list) -> None:
     top = importance.head(TOP_N_FEATURES).iloc[::-1]
-    labels = [FEATURE_LABELS.get(f, f) for f in top["feature"]]
+    labels = [FEATURE_LABELS.get(str(f), str(f)) for f in top["feature"].tolist()]
 
     fig, ax = plt.subplots(figsize=(8, 0.45 * len(top) + 1.8))
-    ax.barh(labels, top["importance_mean"], xerr=top["importance_std"], capsize=3, color="#6a9fb5")
-    ax.set(xlabel="Зростання RMSE при перемішуванні ознаки",
+    ax.barh(
+        labels, top["importance_mean"].to_numpy(dtype=float),
+        xerr=top["importance_std"].to_numpy(dtype=float), capsize=3, color="#6a9fb5",
+    )
+    ax.set(xlabel=price_label("Зростання RMSE при перемішуванні ознаки"),
            title="Важливість ознак (permutation importance, тест)")
     format_money_axis(ax, "x")
     save_fig(fig, "feature_importance", figure_dirs)

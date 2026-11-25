@@ -4,7 +4,7 @@ info:
   title: Laptop Price Predictor API
   version: 1.0.0
   description: Навчальний API прогнозування ціни ноутбука. Цей файл — джерело контракту для Swagger UI
-    на /docs/ та /openapi.json. Автентифікації немає. Валюта датасету не підтверджена. Після зміни YAML
+    на /docs/ та /openapi.json. Автентифікації немає. Валюта датасету - UAH (українська гривня). Після зміни YAML
     перезапустіть backend.
 servers:
 - url: /
@@ -440,15 +440,15 @@ components:
     PredictionOut:
       properties:
         predicted_price:
-          description: Прогнозована ціна
+          description: Прогнозована ціна, грн (UAH)
           title: Predicted Price
           type: number
         price_low:
-          description: Нижня межа типового діапазону
+          description: Нижня межа типового діапазону, грн (UAH)
           title: Price Low
           type: number
         price_high:
-          description: Верхня межа типового діапазону
+          description: Верхня межа типового діапазону, грн (UAH)
           title: Price High
           type: number
         model_name:
@@ -467,8 +467,7 @@ components:
       - model_name
       title: PredictionOut
       type: object
-      description: Ціна й межі округлені до сотень. Межі — емпіричний діапазон, не гарантія. Валюта джерела
-        ще не підтверджена; це навчальна оцінка. Запис у БД виконується у фоні й не впливає на успіх прогнозу.
+      description: Ціна й межі округлені до сотень. Межі — емпіричний діапазон, не гарантія. Валюта датасету, прогнозу та його меж — гривня (UAH); це навчальна оцінка. Запис у БД виконується у фоні й не впливає на успіх прогнозу.
       examples:
       - predicted_price: 57000.0
         price_low: 44700.0

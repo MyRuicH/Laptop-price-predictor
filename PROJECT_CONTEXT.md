@@ -74,7 +74,7 @@ CSV → db.seed → raw_laptops → etl.clean/features/etl_main → parquet + la
 
 [V] CSV — **1303 записи**; checkpoint — **1216 × 21**; тест — **244 × 19**, тобто 17 ознак та actual/predicted_price. За поділу цих 1216 рядків train мав би 972 рядки; актуальний склад старої основної БД не перевірявся.
 
-У checkpoint перейменовано лише колонку ОС на opsys, значення рядків не перекодовані. Вхідний CSV збережений як оригінальне джерело з початковими назвами заголовків; seed мапить їх на SQL-поля. Аномалії лишилися: inches до 35.6, weight 0.0002–11.1, storage_gb 8–2000. У evaluate.py ціна підписана як «грн», але підтвердження валюти чи конвертації немає. Kaggle Laptop Price Dataset та приблизний вік 2017–2018 років — історичні відомості/припущення [H].
+У checkpoint перейменовано лише колонку ОС на opsys, значення рядків не перекодовані. Вхідний CSV збережений як оригінальне джерело з початковими назвами заголовків; seed мапить їх на SQL-поля. Аномалії лишилися: inches до 35.6, weight 0.0002–11.1, storage_gb 8–2000. Користувач підтвердив валюту датасету та прогнозу: українська гривня (UAH). Конвертація не виконується; спільні константи — common/currency.py. Kaggle Laptop Price Dataset та приблизний вік 2017–2018 років — історичні відомості/припущення [H].
 
 | Таблиця | Поточний init.sql |
 |---|---|
@@ -99,7 +99,7 @@ CSV → db.seed → raw_laptops → etl.clean/features/etl_main → parquet + la
 
 ml.train: target price; виключаються конкретні id/raw_id/clean_laps_id та screen_height. Split 0.2, random_state=67. Числові — SimpleImputer(median) + StandardScaler; категоріальні — мода + OneHotEncoder(infrequent_if_exist, min_frequency=10, sparse_output=False). TransformedTargetRegressor(log1p/expm1), Dummy без логарифма. KFold 5/shuffle/seed67; тюнінг RF/HGB 30 ітерацій за neg_root_mean_squared_error. SMOKE=1 **не реалізований**.
 
-Залишений баг: best_name/best_search обираються за CV, але best_model жорстко присвоюється hgb_search.best_estimator_. Зараз HGB справді кращий, артефакт і назва узгоджені; при перемозі RF код був би некоректний. SQL/unique не гарантують порядок; split-індекси не зберігаються, тому seed сам по собі не гарантує відтворення історичних train/test.
+Вибір estimator виправлено: використовується best_search.best_estimator_, отже фактична модель відповідає переможцю CV; прогноз явно приводиться до числового ndarray. SQL/unique не гарантують порядок; split-індекси не зберігаються, тому seed сам по собі не гарантує відтворення історичних train/test.
 
 | Модель | CV RMSE до тюнінгу, mean ± sample std |
 |---|---|
@@ -173,7 +173,7 @@ docker compose --env-file .env --project-name laptop-price-predictor-local up -d
 ## 10. Перевірки та Postman
 
 - 8 регресій backend/ETL + 5 тестів контракту = **13 unittest**, успішні [V]. Включають паритет240 прийнятих рядків; 4 історичні рядки відхиляються через вагу/діагональ.
-- OpenAPI3.1 перевірений openapi-spec-validator; поля/межі запиту звірені з Pydantic, всі поточні маршрути описані.
+- OpenAPI 3.1 перевірений openapi-spec-validator; поля/межі запиту звірені з Pydantic, всі поточні маршрути описані.
 - **25 HTTP-запитів** з postman-collection.json виконані tests/check_collection_http.py: статуси, типи вмісту, JSON Schema, byte-wise YAML, тотожність JSON/YAML, redirect, No OS і warnings [V].
 - Newman не встановлювався: дозвіл на завантаження відхилено. JavaScript Postman-тестів не виконувався в Newman; їх виконує Postman/Collection Runner. HTTP-helper цього не підміняє.
 - Контейнерний smoke перевірив JSONB number/4 записи, raw/clean FK та типи в rollback-транзакції, відсутність ETL/Polars, Python3.12.6, health/API/PNG/422; pip check успішний [V].
@@ -194,6 +194,6 @@ Get-Content -Raw tests/smoke_containers.py | docker exec -i server_backend pytho
 
 ## 12. Залишені завдання та історія
 
-[P] Frontend; ER/записка; підтвердження валюти; виправлення вибору estimator у train; фізичні аномалії даних; стабільність порядку й split; повторні seed/ETL без дублювання; решта тексту EDA/help/docstrings. Користувач визначив їх некритичними для поточного обсягу. Зміни даних/перенавчання — тільки за окремою вказівкою.
+[P] Frontend; ER/записка; фізичні аномалії даних; стабільність порядку й split; повторні seed/ETL без дублювання; решта тексту EDA/help/docstrings. Користувач визначив їх некритичними для поточного обсягу. Зміни даних/перенавчання — тільки за окремою вказівкою.
 
 [H] До виправлень ETL був тест RMSE13380/MAE9327/R²0.826/MAPE16.5%, але склад тесту відрізнявся; напряму не порівнювати. Старий bootstrap RMSE CI[9935;13046] не є полем поточного summary. Історичні експерименти пропусків давали RMSE без ОС11946, без ваги14747, без обох15302, без RAM14143, без cpu_ghz13955 при базовому11486; цього разу не відтворювалися. learning_curve й ансамбль HGB+RF не реалізовані.

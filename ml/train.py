@@ -2,6 +2,7 @@ import polars as pl
 import numpy as np
 import json
 from pathlib import Path
+from typing import cast
 
 import joblib
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
@@ -27,6 +28,7 @@ from sklearn.ensemble import (
 
 from etl.db_utils import load_table_data
 from common.logger import get_logger
+from common.currency import CURRENCY
 
 RANDOM_STATE = 67
 N_ITER = 30
@@ -302,6 +304,7 @@ def save_best_model(
 
         with open(MODELS_DIR / "metrics.json", "w", encoding="utf-8") as fh:
             json.dump({
+                "currency": CURRENCY,
                 "cv_results": cv,
                 "tuning": {n: {"cv_rmse": float(-s.best_score_), "best_params": s.best_params_} 
                            for n, s in searches.items()},
@@ -375,11 +378,13 @@ def main():
 
         searches = {"HistGradientBoosting": hgb_search, "RandomForest": rf_search}
         best_name, best_search = max(searches.items(), key=lambda  kv: kv[1].best_score_)
-        best_model = hgb_search.best_estimator_
+        best_model = cast(
+            Pipeline | TransformedTargetRegressor, best_search.best_estimator_
+        )
 
         logger.info(f"Selected {best_name} by CV: {-best_search.best_score_:.0f}")
 
-        y_pred = best_model.predict(X_test)
+        y_pred = np.asarray(best_model.predict(X_test), dtype=float)
 
         logger.info(
             f"Prediction range: {y_pred.min():.0f}..{y_pred.max():.0f}; "

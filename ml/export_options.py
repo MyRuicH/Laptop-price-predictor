@@ -3,12 +3,14 @@ import numpy as np
 import joblib
 from decimal import Decimal
 from pathlib import Path
+from typing import cast
 
 from psycopg2.extras import RealDictCursor
 from sklearn.model_selection import KFold, cross_val_predict
 
 from etl.db_utils import get_connection
 from ml.train import RANDOM_STATE, get_prepared_data, select_features, features_splitting
+from common.currency import CURRENCY
 
 
 # Шлях до директорії поточного файлу
@@ -45,7 +47,7 @@ def export_options():
     conn = get_connection()
 
     try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+        with cast(RealDictCursor, conn.cursor(cursor_factory=RealDictCursor)) as cursor:
 
             # 1. Значення для dropdown-полів
             cursor.execute("""
@@ -89,7 +91,10 @@ def export_options():
                 FROM laptops_clean;
             """)
 
-            dropdowns = dict(cursor.fetchone())
+            dropdown_row = cursor.fetchone()
+            if dropdown_row is None:
+                raise ValueError("Dropdown query returned no result")
+            dropdowns = {key: value or [] for key, value in dropdown_row.items()}
 
             # 2. Мапа cpu_model -> cpu_brand
             cursor.execute("""
@@ -138,6 +143,9 @@ def export_options():
             """)
 
             ranges = cursor.fetchone()
+            if ranges is None or any(value is None for value in ranges.values()):
+                raise ValueError("Cannot export numeric ranges from empty or incomplete data")
+            ranges = {key: float(value) for key, value in ranges.items()}
 
             numeric_ranges = {
                 "inches": {
@@ -160,6 +168,7 @@ def export_options():
 
             # 5. Формування фінального словника
             options = {
+                "currency": CURRENCY,
                 "dropdowns": dropdowns,
                 "cpu_brands": cpu_brands,
                 "gpu_brands": gpu_brands,

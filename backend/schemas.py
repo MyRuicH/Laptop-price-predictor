@@ -64,9 +64,9 @@ class LaptopInput(BaseModel):
 
 class PredictionOut(BaseModel):
    
-    predicted_price: float = Field(description="Прогнозована ціна")
-    price_low: float = Field(description="Нижня межа типового діапазону")
-    price_high: float = Field(description="Верхня межа типового діапазону")
+    predicted_price: float = Field(description="Прогнозована ціна, грн (UAH)")
+    price_low: float = Field(description="Нижня межа типового діапазону, грн (UAH)")
+    price_high: float = Field(description="Верхня межа типового діапазону, грн (UAH)")
     model_name: str = Field(description="Яка модель дала прогноз")
  
     warnings: list[str] = Field(default_factory=list)
