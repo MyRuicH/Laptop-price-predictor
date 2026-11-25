@@ -251,9 +251,8 @@ def analytics_page() -> FileResponse:
     return _page("analytics.html")
 
 
-# Статика (CSS, JS, графіки), fronted-чатсина ще не раелізована. Монтується на /static, а не на «/»: монтування на
+# Статика (CSS, JS, графіки), fronted-чатсина раелізована. Монтується на /static, а не на «/»: монтування на
 # корінь перехоплювало б будь-який шлях і «з'їдало» маршрути API. 
-# Хоч fronted-чатсина ще не раелізована - backend усе одно стартує й працює.
 if FRONTEND_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 else:
