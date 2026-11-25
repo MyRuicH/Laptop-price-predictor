@@ -21,7 +21,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, HTTPException, Request
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api_docs import OPENAPI_FILE, load_openapi_schema
@@ -89,10 +89,20 @@ def docs_redirect(request: Request) -> RedirectResponse:
 @app.get("/docs/", include_in_schema=False)
 def swagger_ui(request: Request):
     root_path = request.scope.get("root_path", "").rstrip("/")
-    return get_swagger_ui_html(
+    response = get_swagger_ui_html(
         openapi_url=f"{root_path}/openapi.yaml",
         title="Laptop Price Predictor — Swagger UI",
     )
+    # Лише обгортка навігації; штатні ресурси та інтерактивність Swagger збережені.
+    navigation = (
+        '<nav aria-label="Навігація сервісу" style="padding:16px 24px;display:flex;'
+        'gap:24px;background:#111613;color:#f0f3ed;font:16px system-ui">'
+        f'<a style="color:inherit" href="{root_path}/">Прогноз</a>'
+        f'<a style="color:inherit" href="{root_path}/analytics">Аналітика</a>'
+        '</nav>'
+    )
+    html = bytes(response.body).decode("utf-8").replace("<body>", f"<body>{navigation}", 1)
+    return HTMLResponse(html)
 
 
 @app.get("/redoc", include_in_schema=False)

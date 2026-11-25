@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="uk" data-theme="dark" data-motion="on">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Прогноз ціни ноутбука у гривнях за його характеристиками. Навчальний проєкт із машинного навчання.">
+  <meta name="color-scheme" content="dark light">
+  <title>Прогноз ціни ноутбука</title>
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/config.js"></script>
+  <script src="/static/preferences.js"></script>
+  <script type="module" src="/static/script.js"></script>
+</head>
+<body data-page="prediction">
+  <a class="skip-link" href="#main">До основного вмісту</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/" aria-label="Прогноз ціни ноутбука — головна">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 7h18v14H7zM3 25h26l-3 3H6z"/></svg>
+        <span>Прогноз<span class="brand-subtitle">ціни ноутбука</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Головна навігація">
+        <a href="/" aria-current="page">Прогноз</a><a href="/analytics">Аналітика</a><a href="/docs/">Swagger</a>
+      </nav>
+      <div class="header-controls">
+        <div class="theme-control">
+          <button class="icon-button theme-toggle" type="button" aria-label="Обрати тему" aria-expanded="false" aria-controls="theme-options"><span class="theme-swatch" aria-hidden="true"></span></button>
+          <div id="theme-options" class="theme-options" hidden aria-label="Тема оформлення">
+            <button type="button" data-theme-choice="dark" aria-pressed="true">Темна<span aria-hidden="true">✓</span></button>
+            <button type="button" data-theme-choice="light" aria-pressed="false">Світла<span aria-hidden="true">✓</span></button>
+            <button type="button" data-theme-choice="purple" aria-pressed="false">Фіолетова<span aria-hidden="true">✓</span></button>
+          </div>
+        </div>
+        <button class="motion-toggle" type="button" aria-pressed="true"><span class="motion-symbol" aria-hidden="true">Ⅱ</span><span data-motion-label>Рух увімкнено</span></button>
+      </div>
+    </div>
+  </header>
+  <div class="error-toast" role="alert" hidden>
+    <button type="button" class="toast-close" aria-label="Закрити повідомлення">×</button>
+    <span data-toast-message></span><a href="#result">Докладніше</a>
+  </div>
+  <main id="main">
+    <section class="hero section-shell" aria-labelledby="hero-title">
+      <div class="hero-decor" aria-hidden="true">
+        <div class="hero-grid"></div>
+        <svg class="floating-laptop laptop-one" viewBox="0 0 240 180"><use href="/static/img/laptop.svg#laptop"/></svg>
+        <svg class="floating-laptop laptop-two" viewBox="0 0 240 180"><use href="/static/img/laptop.svg#laptop"/></svg>
+        <svg class="floating-laptop laptop-three" viewBox="0 0 240 180"><use href="/static/img/laptop.svg#laptop"/></svg>
+        <div class="hero-orbit"></div>
+      </div>
+      <div class="hero-content">
+        <p class="eyebrow"><span class="tiny-chip" aria-hidden="true">ML</span> Характеристики. Дані. Оцінка.</p>
+        <h1 id="hero-title" data-service-title>Прогноз ціни<br><span>ноутбука</span></h1>
+        <p class="hero-description">Вкажіть комплектуючі та характеристики ноутбука,<br class="desktop-break"> щоб отримати прогноз його ціни.</p>
+        <a class="button primary hero-cta" href="#specifications">Перейти до прогнозу</a>
+        <div class="hero-notes"><span>Ціна у гривнях</span><span>Оцінка за ML-моделлю</span><span>Без реєстрації</span></div>
+      </div>
+      <div class="hero-bottom"><span>Від характеристик до прогнозу</span><span class="scroll-cue" aria-hidden="true"></span><span>Навчальний проєкт</span></div>
+    </section>
+    <section id="specifications" class="form-section section-shell" aria-labelledby="form-title">
+      <div class="section-heading"><div><p class="eyebrow">Ваша конфігурація</p><h2 id="form-title">Характеристики ноутбука</h2></div><p>Оберіть комплектуючі.<br>Модель зробить розрахунок.</p></div>
+      <div class="form-layout">
+        <aside class="form-guide panel">
+          <span class="guide-icon" aria-hidden="true">⌘</span><h3>Точність починається з деталей</h3>
+          <p>Вкажіть характеристики конкретного ноутбука. Усі поля зі знаком <span class="required-mark">*</span> обов’язкові.</p>
+          <hr><p>ОС та висоту екрана можна пропустити. Прапорці екрана необов’язкові.</p>
+          <div class="guide-note">Це оцінка навчальної моделі, а не актуальна ринкова пропозиція.</div>
+          <a class="text-link" href="/analytics#overview">Як працює прогноз</a>
+        </aside>
+        <div class="form-card panel">
+          <div id="options-status" class="inline-status" role="status">Завантажуємо доступні характеристики…</div>
+          <button id="retry-options" class="button secondary" type="button" hidden>Завантажити ще раз</button>
+          <form id="laptop-form" novalidate aria-label="Характеристики ноутбука" aria-busy="true">
+            <fieldset id="specification-fields" disabled><legend class="sr-only">Конфігурація ноутбука</legend><div id="form-groups"></div></fieldset>
+            <div id="validation-summary" class="validation-summary" role="alert" hidden></div>
+            <div class="form-actions"><span class="form-privacy">Результат можна переглянути в аналітиці</span><button id="clear-form" class="button secondary" type="button" disabled>Очистити</button><button id="predict-button" class="button primary" type="submit" disabled>Прогноз</button></div>
+          </form>
+        </div>
+      </div>
+    </section>
+    <section id="result" class="result-section section-shell" aria-labelledby="result-title">
+      <div class="section-heading"><div><p class="eyebrow">Від характеристик до ціни</p><h2 id="result-title" tabindex="-1">Результат прогнозу</h2></div><span class="section-tag">UAH · Українська гривня</span></div>
+      <div id="prediction-result" class="result-content panel" aria-live="polite" aria-atomic="true">
+        <div class="empty-state"><svg viewBox="0 0 240 180" aria-hidden="true"><use href="/static/img/laptop.svg#laptop"/></svg><h3>Тут з’явиться ваша оцінка</h3><p>Заповніть характеристики ноутбука та натисніть «Прогноз».</p><a class="text-link" href="#specifications">До характеристик</a></div>
+      </div>
+      <p class="section-disclaimer">Навчальна модель працює на історичних даних. Результат не враховує стан пристрою та поточні ціни магазинів.</p>
+    </section>
+  </main>
+  <footer class="site-footer"><div class="footer-top"><a class="footer-brand" href="/" data-service-name>Прогноз ціни ноутбука</a><span>Навчальний проєкт · Machine Learning</span></div><dl class="footer-details"><div><dt>Автор</dt><dd data-contact="author">Не вказано</dd></div><div><dt>Група</dt><dd data-contact="group">Не вказано</dd></div><div><dt>Поточна дата</dt><dd><time data-current-date></time></dd></div><div><dt>Електронна пошта</dt><dd data-contact="email">Не вказано</dd></div><div><dt>Номер телефону</dt><dd data-contact="phone">Не вказано</dd></div></dl></footer>
+  <noscript><p class="noscript-note">Для завантаження характеристик і прогнозу увімкніть JavaScript у браузері.</p></noscript>
+</body>
+</html>

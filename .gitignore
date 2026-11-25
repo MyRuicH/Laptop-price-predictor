@@ -193,6 +193,7 @@ pyrightconfig.json
 .ionide
 
 PROJECT_CONTEXT.md
+front_instructions.md
 
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python

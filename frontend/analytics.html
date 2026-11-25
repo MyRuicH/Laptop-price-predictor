@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="uk" data-theme="dark" data-motion="on">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Як працює прогноз ціни ноутбука: моделі, метрики якості, графіки та остання оцінка.">
+  <meta name="color-scheme" content="dark light">
+  <title>Аналітика · Прогноз ціни ноутбука</title>
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/config.js"></script>
+  <script src="/static/preferences.js"></script>
+  <script type="module" src="/static/script.js"></script>
+</head>
+<body data-page="analytics">
+  <a class="skip-link" href="#main">До основного вмісту</a>
+  <header class="site-header"><div class="header-inner">
+    <a class="brand" href="/" aria-label="Прогноз ціни ноутбука — головна"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 7h18v14H7zM3 25h26l-3 3H6z"/></svg><span>Прогноз<span class="brand-subtitle">ціни ноутбука</span></span></a>
+    <nav class="main-nav" aria-label="Головна навігація"><a href="/">Прогноз</a><a href="/analytics" aria-current="page">Аналітика</a><a href="/docs/">Swagger</a></nav>
+    <div class="header-controls"><div class="theme-control"><button class="icon-button theme-toggle" type="button" aria-label="Обрати тему" aria-expanded="false" aria-controls="theme-options"><span class="theme-swatch" aria-hidden="true"></span></button><div id="theme-options" class="theme-options" hidden aria-label="Тема оформлення"><button type="button" data-theme-choice="dark" aria-pressed="true">Темна<span aria-hidden="true">✓</span></button><button type="button" data-theme-choice="light" aria-pressed="false">Світла<span aria-hidden="true">✓</span></button><button type="button" data-theme-choice="purple" aria-pressed="false">Фіолетова<span aria-hidden="true">✓</span></button></div></div><button class="motion-toggle" type="button" aria-pressed="true"><span class="motion-symbol" aria-hidden="true">Ⅱ</span><span data-motion-label>Рух увімкнено</span></button></div>
+  </div></header>
+  <main id="main" class="analytics-main section-shell">
+    <div class="analytics-heading"><p class="eyebrow">За лаштунками оцінки</p><h1>Дані замість здогадок<span class="accent">.</span></h1><p>Як модель бачить характеристики ноутбука<br class="desktop-break"> та що означають її результати.</p></div>
+    <div class="analytics-layout">
+      <aside class="analytics-contents"><nav aria-label="Зміст аналітики"><span class="eyebrow">На цій сторінці</span><a href="#overview" aria-current="location">Як формується прогноз</a><a href="#models">Доступні моделі</a><a href="#evaluation">Оцінювання якості</a><a href="#latest" id="latest-link" hidden>Останній прогноз</a></nav><a class="button secondary" href="/#specifications">Новий прогноз</a></aside>
+      <div class="analytics-sections">
+        <section id="overview" aria-labelledby="overview-title"><p class="eyebrow">Від даних до результату</p><h2 id="overview-title">Як формується прогноз</h2><p class="section-intro">Модель знаходить закономірності між характеристиками та цінами у навчальних даних і застосовує їх до вашої конфігурації.</p><div class="process-grid"><article class="panel"><span class="process-symbol" aria-hidden="true">⌘</span><h3>Ваші характеристики</h3><p>Екран, процесор, графіка, пам’ять та інші параметри проходять перевірку.</p></article><article class="panel"><span class="process-symbol" aria-hidden="true">◇</span><h3>Обробка моделлю</h3><p>Числові ознаки масштабуються, категорії кодуються. Пропуски заповнюються за навчальною вибіркою.</p></article><article class="panel"><span class="process-symbol" aria-hidden="true">₴</span><h3>Прогноз у гривнях</h3><p>Сервер повертає ціну, типовий діапазон та попередження щодо конфігурації.</p></article></div><div class="info-note">Модель оцінює ціну за історичними даними. Це навчальний інструмент; зношення, гарантія та актуальні пропозиції магазинів не враховуються.</div></section>
+        <section id="models" aria-labelledby="models-title"><p class="eyebrow">Модель та експерименти</p><h2 id="models-title">Доступні моделі</h2><div id="model-status" role="status" class="inline-status">Завантажуємо метрики моделі…</div><button id="retry-model-info" class="button secondary" type="button" hidden>Спробувати ще раз</button><div id="model-info" hidden></div></section>
+        <section id="evaluation" aria-labelledby="evaluation-title"><p class="eyebrow">Перевірка на даних</p><h2 id="evaluation-title">Оцінювання якості</h2><p class="section-intro">Графіки з наявного звіту оцінювання. Вони описують модель загалом і не пояснюють внесок ознак у конкретний прогноз.</p><div class="charts-grid">
+          <figure class="chart-card panel"><figcaption><h3>Прогноз і фактична ціна</h3><p>Наближення точок до діагоналі означає точнішу оцінку.</p></figcaption><a href="/static/img/pred_vs_actual.png" target="_blank" rel="noopener" aria-label="Відкрити графік прогнозу та фактичної ціни в новій вкладці"><img src="/static/img/pred_vs_actual.png" alt="Діаграма зіставлення прогнозованих і фактичних цін тестової вибірки" loading="lazy" width="800" height="600"></a></figure>
+          <figure class="chart-card panel"><figcaption><h3>Розподіл похибок</h3><p>Показує, як відрізняються фактичні та прогнозовані ціни.</p></figcaption><a href="/static/img/residuals.png" target="_blank" rel="noopener" aria-label="Відкрити графік похибок у новій вкладці"><img src="/static/img/residuals.png" alt="Розподіл залишків прогнозу на тестовій вибірці" loading="lazy" width="800" height="600"></a></figure>
+          <figure class="chart-card panel"><figcaption><h3>Порівняння моделей</h3><p>Результати експериментів із різними алгоритмами.</p></figcaption><a href="/static/img/model_comparison.png" target="_blank" rel="noopener" aria-label="Відкрити порівняння моделей у новій вкладці"><img src="/static/img/model_comparison.png" alt="Порівняння якості моделей зі звіту оцінювання" loading="lazy" width="800" height="600"></a></figure>
+          <figure class="chart-card panel"><figcaption><h3>Навчання та валідація</h3><p>Порівняння похибок допомагає оцінити узагальнення моделі.</p></figcaption><a href="/static/img/train_vs_validation.png" target="_blank" rel="noopener" aria-label="Відкрити графік навчання та валідації в новій вкладці"><img src="/static/img/train_vs_validation.png" alt="Порівняння результатів на навчальних та валідаційних фолдах" loading="lazy" width="800" height="600"></a></figure>
+          <figure class="chart-card panel"><figcaption><h3>Важливість характеристик</h3><p>Загальна permutation importance; не індивідуальне пояснення.</p></figcaption><a href="/static/img/feature_importance.png" target="_blank" rel="noopener" aria-label="Відкрити важливість характеристик у новій вкладці"><img src="/static/img/feature_importance.png" alt="Важливість ознак за перестановочним оцінюванням моделі" loading="lazy" width="800" height="600"></a></figure>
+          <figure class="chart-card panel"><figcaption><h3>Помилки за сегментами</h3><p>Якість прогнозу може різнитися між групами ноутбуків.</p></figcaption><a href="/static/img/segment_errors.png" target="_blank" rel="noopener" aria-label="Відкрити помилки за сегментами в новій вкладці"><img src="/static/img/segment_errors.png" alt="Похибки моделі за сегментами даних" loading="lazy" width="800" height="600"></a></figure>
+        </div></section>
+        <section id="latest" aria-labelledby="latest-title" hidden><p class="eyebrow">Ваша остання оцінка</p><h2 id="latest-title">Останній прогноз</h2><div id="latest-summary" class="panel"></div><h3 class="snapshot-heading">Характеристики на момент запиту</h3><dl id="latest-specifications" class="specification-snapshot panel"></dl><p class="section-disclaimer">Сервер повертає один прогноз. Індивідуальні внески ознак та порівняння кількох прогнозів API не надає.</p></section>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer"><div class="footer-top"><a class="footer-brand" href="/" data-service-name>Прогноз ціни ноутбука</a><span>Навчальний проєкт · Machine Learning</span></div><dl class="footer-details"><div><dt>Автор</dt><dd data-contact="author">Не вказано</dd></div><div><dt>Група</dt><dd data-contact="group">Не вказано</dd></div><div><dt>Поточна дата</dt><dd><time data-current-date></time></dd></div><div><dt>Електронна пошта</dt><dd data-contact="email">Не вказано</dd></div><div><dt>Номер телефону</dt><dd data-contact="phone">Не вказано</dd></div></dl></footer>
+  <noscript><p class="noscript-note">Для завантаження метрик та останнього прогнозу увімкніть JavaScript.</p></noscript>
+</body>
+</html>
