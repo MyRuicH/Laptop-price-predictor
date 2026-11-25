@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from common.logger import get_logger
 
@@ -16,7 +16,8 @@ class LaptopInput(BaseModel):
 
     company: str = Field(min_length=1, description="Бренд, напр. Lenovo")
     type_name: str = Field(min_length=1, description="Тип: Notebook, Gaming, Ultrabook ...")
-    opsys: str = Field(min_length=1, description="Операційна система")
+    opsys: str | None = Field(default=None, min_length=1,
+                        description="ОС; не вказано = типове значення")
     storage_type: str = Field(min_length=1, description="SSD / HDD / Hybrid / Flash Storage")
     cpu_model: str = Field(min_length=1, description="Модель процесора, напр. Core i5 7200U")
     gpu_model: str = Field(min_length=1, description="Модель відеокарти, напр. HD Graphics 620")
@@ -37,6 +38,18 @@ class LaptopInput(BaseModel):
         default=None, ge=768, le=2160,
         description="Висота екрана, px (модель не використовує, лише для перевірки)",
     )
+
+    @field_validator("opsys", mode="before")
+    @classmethod
+    def empty_to_none(cls, value):
+        """Порожній рядок — пропуск; варіанти No Os нормалізуються до No OS."""
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return None
+            if value.casefold() == "no os":
+                return "No OS"
+        return value
 
     @model_validator(mode="after")
     def check_resolution(self) -> "LaptopInput":

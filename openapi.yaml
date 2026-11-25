@@ -1,0 +1,673 @@
+# Ручний контракт API. Swagger UI читає цей файл через /openapi.yaml.
+openapi: 3.1.0
+info:
+  title: Laptop Price Predictor API
+  version: 1.0.0
+  description: Навчальний API прогнозування ціни ноутбука. Цей файл — джерело контракту для Swagger UI
+    на /docs/ та /openapi.json. Автентифікації немає. Валюта датасету не підтверджена. Після зміни YAML
+    перезапустіть backend.
+servers:
+- url: /
+  description: Поточний сервер (same-origin)
+- url: http://localhost:8000
+  description: Локальний Docker-запуск
+tags:
+- name: api
+  description: Прогнози, довідники та метрики
+- name: service
+  description: Життєздатність сервісу
+- name: pages
+  description: HTML-сторінки frontend
+- name: static
+  description: Статичні ресурси
+- name: documentation
+  description: Swagger, ReDoc та специфікація
+paths:
+  /api/predict:
+    post:
+      tags:
+      - api
+      summary: Прогноз ціни ноутбука
+      operationId: predictLaptop
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LaptopInput'
+            examples:
+              complete:
+                summary: Усі характеристики
+                value:
+                  company: Lenovo
+                  type_name: Notebook
+                  inches: 15.6
+                  screen_width: 1920
+                  screen_height: 1080
+                  is_ips: true
+                  is_touchscreen: false
+                  cpu_model: Core i5 7200U
+                  cpu_ghz: 2.5
+                  ram_gb: 8
+                  storage_type: SSD
+                  storage_gb: 256
+                  gpu_model: HD Graphics 620
+                  opsys: Windows 10
+                  weight: 2.0
+              withoutOpsys:
+                summary: ОС не вказана
+                value:
+                  company: Lenovo
+                  type_name: Notebook
+                  inches: 15.6
+                  screen_width: 1920
+                  screen_height: 1080
+                  is_ips: true
+                  is_touchscreen: false
+                  cpu_model: Core i5 7200U
+                  cpu_ghz: 2.5
+                  ram_gb: 8
+                  storage_type: SSD
+                  storage_gb: 256
+                  gpu_model: HD Graphics 620
+                  weight: 2.0
+              noOs:
+                summary: Ноутбук без ОС
+                value:
+                  company: Lenovo
+                  type_name: Notebook
+                  inches: 15.6
+                  screen_width: 1920
+                  screen_height: 1080
+                  is_ips: true
+                  is_touchscreen: false
+                  cpu_model: Core i5 7200U
+                  cpu_ghz: 2.5
+                  ram_gb: 8
+                  storage_type: SSD
+                  storage_gb: 256
+                  gpu_model: HD Graphics 620
+                  opsys: No OS
+                  weight: 2.0
+      description: Прогноз не потребує доступної БД. Відповідь з warnings може бути успішною; невідомі
+        категорії дають 422.
+      responses:
+        '200':
+          description: Прогноз обчислено; збереження в БД — фонова побічна дія.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionOut'
+        '422':
+          description: Помилки типів, меж, зайвих полів або невідомих категорій.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorOut'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/options:
+    get:
+      tags:
+      - api
+      summary: Довідники для форми
+      operationId: getOptions
+      description: numeric_ranges можуть містити аномалії даних і не замінюють межі LaptopInput. Список
+        пар CPU/GPU не віддається.
+      responses:
+        '200':
+          description: Категорії, відомі CPU/GPU і діапазони навчальних даних.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptionsOut'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/model-info:
+    get:
+      tags:
+      - api
+      summary: Метрики та конфігурація моделі
+      operationId: getModelInfo
+      responses:
+        '200':
+          description: Тестові метрики, CV, тюнінг та джерело цінового інтервалу.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelInfoOut'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /health:
+    get:
+      tags:
+      - service
+      summary: Стан моделі й БД
+      operationId: getHealth
+      responses:
+        '200':
+          description: Процес відповідає; status може бути degraded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthOut'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /:
+    get:
+      tags:
+      - pages
+      summary: Головна HTML-сторінка
+      operationId: getIndexPage
+      responses:
+        '200':
+          description: HTML-файл; поки frontend не реалізований, тіло може бути порожнім.
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /analytics:
+    get:
+      tags:
+      - pages
+      summary: HTML-сторінка аналітики
+      operationId: getAnalyticsPage
+      responses:
+        '200':
+          description: HTML-файл; поки frontend не реалізований, тіло може бути порожнім.
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /static/{asset_path}:
+    get:
+      tags:
+      - static
+      summary: Файл із frontend/
+      operationId: getStaticAsset
+      parameters:
+      - name: asset_path
+        in: path
+        required: true
+        description: Відносний шлях у frontend/, включно з підтеками.
+        schema:
+          type: string
+        example: img/feature_importance.png
+      responses:
+        '200':
+          description: Стилі, JavaScript або зображення.
+          content:
+            text/css:
+              schema:
+                type: string
+            text/javascript:
+              schema:
+                type: string
+            image/png:
+              schema:
+                type: string
+                format: binary
+            text/html:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+    head:
+      tags:
+      - static
+      summary: Заголовки статичного файлу
+      operationId: headStaticAsset
+      parameters:
+      - name: asset_path
+        in: path
+        required: true
+        description: Відносний шлях у frontend/, включно з підтеками.
+        schema:
+          type: string
+        example: img/feature_importance.png
+      responses:
+        '200':
+          description: Заголовки без тіла.
+        '404':
+          description: Файл не знайдений, тіло не повертається.
+  /docs:
+    get:
+      tags:
+      - documentation
+      summary: Перенаправлення на Swagger UI
+      operationId: redirectSwagger
+      responses:
+        '307':
+          description: Тимчасове перенаправлення на /docs/.
+          headers:
+            Location:
+              schema:
+                type: string
+              example: /docs/
+  /docs/:
+    get:
+      tags:
+      - documentation
+      summary: Swagger UI із ручного openapi.yaml
+      operationId: getSwaggerUi
+      responses:
+        '200':
+          description: HTML документації; для завантаження UI-бібліотеки потрібен доступ браузера до CDN.
+          content:
+            text/html:
+              schema:
+                type: string
+  /redoc:
+    get:
+      tags:
+      - documentation
+      summary: ReDoc із тієї самої специфікації
+      operationId: getRedocUi
+      responses:
+        '200':
+          description: HTML документації; для завантаження UI-бібліотеки потрібен доступ браузера до CDN.
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      tags:
+      - documentation
+      summary: Ручна специфікація YAML
+      operationId: getOpenapiYaml
+      responses:
+        '200':
+          description: Файл openapi.yaml з кореня проєкту.
+          content:
+            application/yaml:
+              schema:
+                type: string
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /openapi.json:
+    get:
+      tags:
+      - documentation
+      summary: JSON-представлення ручної специфікації
+      operationId: getOpenapiJson
+      responses:
+        '200':
+          description: Той самий документ, розібраний із openapi.yaml.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  schemas:
+    LaptopInput:
+      additionalProperties: false
+      properties:
+        company:
+          description: Бренд, напр. Lenovo
+          minLength: 1
+          title: Company
+          type: string
+        type_name:
+          description: 'Тип: Notebook, Gaming, Ultrabook ...'
+          minLength: 1
+          title: Type Name
+          type: string
+        opsys:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          description: 'Необов’язкова ОС: відсутність, null, порожній або пробільний рядок означають імпутацію
+            навчальною модою. Варіанти No Os нормалізуються до No OS. Для чинної моделі No OS відображається
+            на історичну категорію Unknown; Unknown не означає, що користувач не знає ОС.'
+          title: Opsys
+        storage_type:
+          description: SSD / HDD / Hybrid / Flash Storage
+          minLength: 1
+          title: Storage Type
+          type: string
+        cpu_model:
+          description: Модель процесора, напр. Core i5 7200U
+          minLength: 1
+          title: Cpu Model
+          type: string
+        gpu_model:
+          description: Модель відеокарти, напр. HD Graphics 620
+          minLength: 1
+          title: Gpu Model
+          type: string
+        inches:
+          description: Діагональ екрана, дюйми
+          maximum: 20
+          minimum: 10
+          title: Inches
+          type: number
+        screen_width:
+          description: Ширина екрана, px
+          maximum: 3840
+          minimum: 1366
+          title: Screen Width
+          type: integer
+        cpu_ghz:
+          description: Частота процесора, ГГц
+          maximum: 4.0
+          minimum: 0.8
+          title: Cpu Ghz
+          type: number
+        ram_gb:
+          description: Оперативна пам'ять, ГБ
+          maximum: 64
+          minimum: 1
+          title: Ram Gb
+          type: integer
+        storage_gb:
+          description: Обсяг накопичувача, ГБ
+          maximum: 2000
+          minimum: 8
+          title: Storage Gb
+          type: integer
+        weight:
+          description: Вага, кг
+          maximum: 6.0
+          minimum: 0.5
+          title: Weight
+          type: number
+        is_ips:
+          default: false
+          title: Is Ips
+          type: boolean
+        is_touchscreen:
+          default: false
+          title: Is Touchscreen
+          type: boolean
+        screen_height:
+          anyOf:
+          - maximum: 2160
+            minimum: 768
+            type: integer
+          - type: 'null'
+          default: null
+          description: Висота екрана, px (модель не використовує, лише для перевірки)
+          title: Screen Height
+      required:
+      - company
+      - type_name
+      - storage_type
+      - cpu_model
+      - gpu_model
+      - inches
+      - screen_width
+      - cpu_ghz
+      - ram_gb
+      - storage_gb
+      - weight
+      title: LaptopInput
+      type: object
+      description: Ознаки ноутбука. Бренди CPU/GPU і cpu_gpu_pair обчислює сервер. Значення категорій
+        беріть із GET /api/options. screen_height не використовується моделлю, але не може перевищувати
+        screen_width. Зайві поля заборонені.
+      examples:
+      - company: Lenovo
+        type_name: Notebook
+        inches: 15.6
+        screen_width: 1920
+        screen_height: 1080
+        is_ips: true
+        is_touchscreen: false
+        cpu_model: Core i5 7200U
+        cpu_ghz: 2.5
+        ram_gb: 8
+        storage_type: SSD
+        storage_gb: 256
+        gpu_model: HD Graphics 620
+        opsys: Windows 10
+        weight: 2.0
+    PredictionOut:
+      properties:
+        predicted_price:
+          description: Прогнозована ціна
+          title: Predicted Price
+          type: number
+        price_low:
+          description: Нижня межа типового діапазону
+          title: Price Low
+          type: number
+        price_high:
+          description: Верхня межа типового діапазону
+          title: Price High
+          type: number
+        model_name:
+          description: Яка модель дала прогноз
+          title: Model Name
+          type: string
+        warnings:
+          items:
+            type: string
+          title: Warnings
+          type: array
+      required:
+      - predicted_price
+      - price_low
+      - price_high
+      - model_name
+      title: PredictionOut
+      type: object
+      description: Ціна й межі округлені до сотень. Межі — емпіричний діапазон, не гарантія. Валюта джерела
+        ще не підтверджена; це навчальна оцінка. Запис у БД виконується у фоні й не впливає на успіх прогнозу.
+      examples:
+      - predicted_price: 57000.0
+        price_low: 44700.0
+        price_high: 72800.0
+        model_name: HistGradientBoosting
+        warnings: []
+    OptionsOut:
+      description: 'Відповідь /api/options: з неї фронтенд будує випадні списки.'
+      properties:
+        dropdowns:
+          additionalProperties:
+            items: {}
+            type: array
+          title: Dropdowns
+          type: object
+        cpu_models:
+          items:
+            type: string
+          title: Cpu Models
+          type: array
+        gpu_models:
+          items:
+            type: string
+          title: Gpu Models
+          type: array
+        numeric_ranges:
+          additionalProperties:
+            additionalProperties:
+              type: number
+            type: object
+          title: Numeric Ranges
+          type: object
+      required:
+      - dropdowns
+      - cpu_models
+      - gpu_models
+      - numeric_ranges
+      title: OptionsOut
+      type: object
+    HealthOut:
+      description: HTTP 200 навіть при недоступній БД; дивіться status та db_ok.
+      properties:
+        status:
+          title: Status
+          type: string
+          enum:
+          - ok
+          - degraded
+        model_loaded:
+          title: Model Loaded
+          type: boolean
+        db_ok:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          default: null
+          title: Db Ok
+      required:
+      - status
+      - model_loaded
+      title: HealthOut
+      type: object
+      examples:
+      - status: ok
+        model_loaded: true
+        db_ok: true
+      - status: degraded
+        model_loaded: true
+        db_ok: false
+    ValidationIssue:
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      properties:
+        loc:
+          type: array
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+        msg:
+          type: string
+        type:
+          type: string
+        input: {}
+        ctx:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+    ValidationErrorOut:
+      type: object
+      required:
+      - detail
+      properties:
+        detail:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationIssue'
+      examples:
+      - detail:
+        - loc:
+          - body
+          - company
+          msg: невідоме значення 'Nokia'
+          type: invalid_option
+    ErrorOut:
+      type: object
+      required:
+      - detail
+      properties:
+        detail:
+          type: string
+      examples:
+      - detail: Внутрішня помилка сервера
+    TestMetrics:
+      type: object
+      required:
+      - rmse
+      - mae
+      - r2
+      - mape
+      properties:
+        rmse:
+          type: number
+          description: RMSE у вихідній шкалі цін.
+        mae:
+          type: number
+          description: MAE у вихідній шкалі цін.
+        r2:
+          type: number
+          description: Коефіцієнт детермінації.
+        mape:
+          type: number
+          description: 'Частка, не відсотки: 0.128 означає приблизно 12.8%.'
+    CvSummary:
+      type: object
+      required:
+      - cv_rmse_mean
+      - cv_rmse_std
+      - cv_r2_mean
+      properties:
+        cv_rmse_mean:
+          type: number
+        cv_rmse_std:
+          type: number
+        cv_r2_mean:
+          type: number
+    TuningResult:
+      type: object
+      required:
+      - cv_rmse
+      - best_params
+      properties:
+        cv_rmse:
+          type: number
+        best_params:
+          type: object
+          additionalProperties: true
+    ModelInfoOut:
+      type: object
+      required:
+      - best_model_name
+      - test_metrics
+      - cv_results
+      - tuning
+      - interval_source
+      - n_features
+      properties:
+        best_model_name:
+          type: string
+        test_metrics:
+          $ref: '#/components/schemas/TestMetrics'
+        cv_results:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CvSummary'
+        tuning:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/TuningResult'
+        interval_source:
+          type: string
+          enum:
+          - quantiles
+          - mape_fallback
+        n_features:
+          type: integer
+  responses:
+    InternalError:
+      description: Непередбачена помилка сервера; внутрішні деталі клієнту не віддаються.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorOut'
+    NotFound:
+      description: Сторінка або файл не знайдені.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorOut'

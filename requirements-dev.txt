@@ -1,0 +1,3 @@
+-r backend/requirements.txt
+polars==2.0.0
+openapi-spec-validator==0.8.5

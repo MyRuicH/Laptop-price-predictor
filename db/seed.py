@@ -16,10 +16,10 @@ CSV_PATH = "data/raw/RawLaptopData.csv"
 
 
 conn = psg.connect(
-        host="localhost",
-        port=5433,
-        dbname="laptops",
-        user="myruich",
+        host=os.getenv("DB_HOST", "localhost"),
+        port=os.getenv("DB_PORT", "5433"),
+        dbname=os.getenv("DB_NAME", "laptops"),
+        user=os.getenv("DB_USER", "myruich"),
         password=os.getenv("DB_PASSWORD"),
 
 )

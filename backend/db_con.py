@@ -16,7 +16,6 @@ import psycopg2
 from dotenv import load_dotenv
 from psycopg2.extras import Json
 
-from etl.db_utils import get_connection
 from common.logger import get_logger
 
 
@@ -25,6 +24,24 @@ from common.logger import get_logger
 load_dotenv()
 
 logger = get_logger("backend.db")
+
+
+def get_connection(connect_timeout: int = 3) -> psycopg2.extensions.connection:
+    """Відкриває з'єднання без залежності від ETL та Polars.
+
+    Локально DB_HOST/DB_PORT вказують на опублікований порт PostgreSQL,
+    у контейнері Compose передає адресу сервісу й внутрішній порт.
+    Пароль передається окремим аргументом, тому його спецсимволи
+    не потребують URL-кодування.
+    """
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        port=os.getenv("DB_PORT", "5433"),
+        dbname=os.getenv("DB_NAME", "laptops"),
+        user=os.getenv("DB_USER", "myruich"),
+        password=os.getenv("DB_PASSWORD"),
+        connect_timeout=connect_timeout,
+    )
 
 
 def save_prediction(input_data: dict, predicted_price: float) -> None:
@@ -43,8 +60,9 @@ def save_prediction(input_data: dict, predicted_price: float) -> None:
             # Запит параметризований (%s): значення передаються окремо від тексту SQL,
             # тож SQL-ін'єкція неможлива, навіть якщо в input_data прийде шкідливий рядок.
             cur.execute(
-                "INSERT INTO model_predictions (input_json, predicted_price) VALUES (%s, %s)",
-                (Json(input_data), predicted_price),   # Json() -> колонка типу JSONB
+                "INSERT INTO model_predictions (input_json, pridicted_price) VALUES (%s, %s)",
+                # Обидві колонки JSONB; ціна зберігається як JSON-число.
+                (Json(input_data), Json(predicted_price)),
             )
         logger.info(f"Prediction saved to model_predictions (price={predicted_price:.0f}).")
     except Exception as exc:
@@ -70,4 +88,3 @@ def check_db() -> bool:
     finally:
         if conn is not None:
             conn.close()
-            

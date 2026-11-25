@@ -23,6 +23,7 @@ OPTIONS_FILE = "options.json"
 PAIR_SEPARATOR = " | "
 
 DERIVED_FEATURES = {"cpu_brand", "gpu_brand", "cpu_gpu_pair"}
+OPTIONAL_FEATURES = ("opsys",)
 SERVED_FEATURES = set(LaptopInput.model_fields) | DERIVED_FEATURES
 
 PRICE_ROUNDING = -2
@@ -58,6 +59,11 @@ class ModelService:
         self.gpu_brand_of: dict[str, str] = options["gpu_brands"]   # модель GPU -> бренд
         self.numeric_ranges: dict = options["numeric_ranges"]       # діапазони навчання
         self.known_pairs: set[str] = set(self.dropdowns.get("cpu_gpu_pair", []))
+        # Артефакти не перенавчаємо: стара модель бачила «без ОС» як Unknown.
+        # Канонічне No OS переводимо в її стару категорію лише на вході моделі.
+        self.trained_opsys = set(
+            metrics.get("categorial_columns", {}).get("opsys", self.dropdowns["opsys"])
+        )
 
         # Fail fast: усі ознаки моделі мають бути забезпечені build_input.
         unsupported = set(self.feature_columns) - SERVED_FEATURES
@@ -130,6 +136,11 @@ class ModelService:
             )
 
 
+    def _opsys_for_model(self, value: str | None) -> str | None:
+        if value == "No OS" and "No OS" not in self.trained_opsys and "Unknown" in self.trained_opsys:
+            return "Unknown"
+        return value
+
     def check_options(self, p: LaptopInput) -> list[str]:
         """Перевіряє вхід за довідниками навчальних даних.
 
@@ -137,12 +148,23 @@ class ModelService:
         повертає список попереджень, якщо прогноз можливий, але менш надійний.
         """
         errors: list[str] = []
+        warns: list[str] = []
+        missing = [f for f in OPTIONAL_FEATURES if getattr(p, f) is None]
+        if missing:
+            warns.append(
+                "Не вказано: " + ", ".join(missing) +
+                ". Використано типове значення навчальної вибірки, прогноз менш точний"
+            )
 
         # Жорсткі помилки: значення має бути зі списків, які бачить користувач.
         # Для cpu/gpu це ще й технічна необхідність: бренд беремо за моделлю.
         for field in ("company", "type_name", "opsys", "storage_type"):
             value = getattr(p, field)
-            if value not in self.dropdowns[field]:
+
+            if value is None:
+                continue
+            checked_value = self._opsys_for_model(value) if field == "opsys" else value
+            if value not in self.dropdowns[field] and checked_value not in self.dropdowns[field]:
                 errors.append(f"{field}: невідоме значення '{value}'")
         if p.cpu_model not in self.cpu_brand_of:
             errors.append(f"cpu_model: невідома модель '{p.cpu_model}'")
@@ -155,11 +177,13 @@ class ModelService:
 
         # М'які попередження: дерева не екстраполюють, поза діапазоном навчання
         # модель віддасть «найближче відоме» значення, яке виглядає правдоподібно.
-        warns: list[str] = []
         if p.ram_gb not in self.dropdowns["ram_gb"]:
             warns.append(f"ram_gb={p.ram_gb}: такого обсягу не було в навчальних даних")
         for field, rng in self.numeric_ranges.items():
             value = getattr(p, field)
+
+            if value is None:
+                continue
             if not rng["min"] <= value <= rng["max"]:
                 warns.append(
                     f"{field}={value} поза діапазоном навчальних даних "
@@ -181,7 +205,9 @@ class ModelService:
         тому назви, типи й одиниці мають збігатися з навчальними (training-serving
         skew — головне джерело тихих помилок).
         """
-        row = p.model_dump()                                   # поля форми -> dict
+        row = {k: (np.nan if v is None else v) for k, v in p.model_dump().items()}    # поля форми -> dict
+        if p.opsys is not None:
+            row["opsys"] = self._opsys_for_model(p.opsys)
         row["cpu_brand"] = self.cpu_brand_of[p.cpu_model]      # похідні ознаки: бренд за моделлю
         row["gpu_brand"] = self.gpu_brand_of[p.gpu_model]
         row["cpu_gpu_pair"] = f"{p.cpu_model}{PAIR_SEPARATOR}{p.gpu_model}"
@@ -228,8 +254,12 @@ class ModelService:
 
     def options_payload(self) -> dict:
         """Довідники для побудови форми. Список пар CPU+GPU (249 рядків) фронтенду не потрібен."""
+        dropdowns = {k: list(v) for k, v in self.dropdowns.items() if k != "cpu_gpu_pair"}
+        if self._opsys_for_model("No OS") in self.trained_opsys and "No OS" not in dropdowns["opsys"]:
+            dropdowns["opsys"].append("No OS")
+            dropdowns["opsys"].sort()
         return {
-            "dropdowns": {k: v for k, v in self.dropdowns.items() if k != "cpu_gpu_pair"},
+            "dropdowns": dropdowns,
             "cpu_models": sorted(self.cpu_brand_of),
             "gpu_models": sorted(self.gpu_brand_of),
             "numeric_ranges": self.numeric_ranges,
@@ -254,4 +284,3 @@ class ModelService:
             "interval_source": self.interval_source,
             "n_features": len(self.feature_columns),
         }
-    

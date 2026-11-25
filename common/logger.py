@@ -2,15 +2,14 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-LOG_DIR = "logs"
-os.makedirs(LOG_DIR, exist_ok=True)
-
 def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
 
     if logger.handlers:  # уникнути дублювання хендлерів при повторному імпорті
         return logger
 
+    log_dir = os.getenv("LOG_DIR", "logs")
+    os.makedirs(log_dir, exist_ok=True)
     logger.setLevel(logging.DEBUG)
 
     formatter = logging.Formatter(
@@ -25,7 +24,8 @@ def get_logger(name: str) -> logging.Logger:
 
     # Файл — усе, включно з DEBUG, з ротацією (щоб лог не розростався безмежно)
     file_handler = RotatingFileHandler(
-        f"{LOG_DIR}/{name}.log", maxBytes=2_000_000, backupCount=3, encoding="utf-8"
+        os.path.join(log_dir, f"{name}.log"),
+        maxBytes=2_000_000, backupCount=3, encoding="utf-8"
     )
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)

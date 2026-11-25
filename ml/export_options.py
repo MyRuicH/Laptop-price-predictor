@@ -56,8 +56,8 @@ def export_options():
                     ARRAY_AGG(DISTINCT type_name ORDER BY type_name)
                         FILTER (WHERE type_name IS NOT NULL) AS type_name,
 
-                    ARRAY_AGG(DISTINCT opSys ORDER BY opSys)
-                        FILTER (WHERE opSys IS NOT NULL) AS opsys,
+                    ARRAY_AGG(DISTINCT opsys ORDER BY opsys)
+                        FILTER (WHERE opsys IS NOT NULL) AS opsys,
 
                     ARRAY_AGG(DISTINCT storage_type ORDER BY storage_type)
                         FILTER (WHERE storage_type IS NOT NULL) AS storage_type,

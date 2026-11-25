@@ -5,12 +5,12 @@ backend/main.py — HTTP-шар застосунку (точка входу Fast
 
     main.py (HTTP: маршрути, коди відповідей)
         |--> model_loader.py (бізнес-логіка: перевірка, підготовка ознак, прогноз)
-        |--> db.py           (збереження: PostgreSQL)
+        |--> db_con.py       (збереження: PostgreSQL)
     schemas.py — «контракт»: які дані ходять між клієнтом і сервером
 
 Запуск (з кореня проєкту):
     uvicorn backend.main:app --reload
-Документація API (Swagger): http://localhost:8000/docs
+Документація API (Swagger): http://localhost:8000/docs/
 """
 
 import os
@@ -20,9 +20,11 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend.api_docs import OPENAPI_FILE, load_openapi_schema
 from backend.db_con import check_db, save_prediction
 from backend.model_loader import InvalidInputError, ModelService
 from backend.schemas import HealthOut, LaptopInput, OptionsOut, PredictionOut
@@ -49,6 +51,7 @@ async def lifespan(app: FastAPI):
       * тестованість: імпорт модуля main.py не вимагає наявності моделі на диску.
     """
     logger.info(f"Starting API v{API_VERSION}.")
+    load_openapi_schema()
     app.state.service = ModelService.load()
     yield
     logger.info("Shutting down API.")
@@ -59,7 +62,46 @@ app = FastAPI(
     description="Прогноз ціни ноутбука за його характеристиками (HistGradientBoosting).",
     version=API_VERSION,
     lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
+
+# JSON та обидва UI використовують ту саму ручну специфікацію.
+app.openapi = load_openapi_schema
+
+
+@app.get("/openapi.yaml", include_in_schema=False)
+def openapi_yaml() -> FileResponse:
+    return FileResponse(OPENAPI_FILE, media_type="application/yaml")
+
+
+@app.get("/openapi.json", include_in_schema=False)
+def openapi_json() -> JSONResponse:
+    return JSONResponse(content=app.openapi())
+
+
+@app.get("/docs", include_in_schema=False)
+def docs_redirect(request: Request) -> RedirectResponse:
+    return RedirectResponse(url=request.url_for("swagger_ui"), status_code=307)
+
+
+@app.get("/docs/", include_in_schema=False)
+def swagger_ui(request: Request):
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    return get_swagger_ui_html(
+        openapi_url=f"{root_path}/openapi.yaml",
+        title="Laptop Price Predictor — Swagger UI",
+    )
+
+
+@app.get("/redoc", include_in_schema=False)
+def redoc_ui(request: Request):
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    return get_redoc_html(
+        openapi_url=f"{root_path}/openapi.yaml",
+        title="Laptop Price Predictor — ReDoc",
+    )
 
 
 def get_service(request: Request) -> ModelService:

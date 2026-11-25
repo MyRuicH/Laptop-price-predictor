@@ -1,0 +1,996 @@
+{
+  "info": {
+    "name": "Laptop Price Predictor API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Import this file into Postman and run the full collection in order. Edit collection variables, especially baseUrl. No authentication or database password is needed. Numeric/boolean body variables must remain valid JSON literals. Successful predictions append database records. lastPrediction and legacyNoOsPrediction are populated by tests. Frontend HTML files are currently empty. Server errors (500) and database outages require controlled fault injection and are not triggered by this collection."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "expectedHealthStatus",
+      "value": "ok",
+      "type": "string"
+    },
+    {
+      "key": "company",
+      "value": "Lenovo",
+      "type": "string"
+    },
+    {
+      "key": "type_name",
+      "value": "Notebook",
+      "type": "string"
+    },
+    {
+      "key": "inches",
+      "value": "15.6",
+      "type": "string"
+    },
+    {
+      "key": "screen_width",
+      "value": "1920",
+      "type": "string"
+    },
+    {
+      "key": "screen_height",
+      "value": "1080",
+      "type": "string"
+    },
+    {
+      "key": "is_ips",
+      "value": "true",
+      "type": "string"
+    },
+    {
+      "key": "is_touchscreen",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "cpu_model",
+      "value": "Core i5 7200U",
+      "type": "string"
+    },
+    {
+      "key": "cpu_ghz",
+      "value": "2.5",
+      "type": "string"
+    },
+    {
+      "key": "ram_gb",
+      "value": "8",
+      "type": "string"
+    },
+    {
+      "key": "storage_type",
+      "value": "SSD",
+      "type": "string"
+    },
+    {
+      "key": "storage_gb",
+      "value": "256",
+      "type": "string"
+    },
+    {
+      "key": "gpu_model",
+      "value": "HD Graphics 620",
+      "type": "string"
+    },
+    {
+      "key": "opsys",
+      "value": "Windows 10",
+      "type": "string"
+    },
+    {
+      "key": "weight",
+      "value": "2.0",
+      "type": "string"
+    },
+    {
+      "key": "noOsValue",
+      "value": "No OS",
+      "type": "string"
+    },
+    {
+      "key": "legacyOpsys",
+      "value": "Unknown",
+      "type": "string"
+    },
+    {
+      "key": "invalidCompany",
+      "value": "Nokia",
+      "type": "string"
+    },
+    {
+      "key": "invalidWeight",
+      "value": "0.1",
+      "type": "string"
+    },
+    {
+      "key": "invalidScreenHeight",
+      "value": "2160",
+      "type": "string"
+    },
+    {
+      "key": "narrowScreenWidth",
+      "value": "1366",
+      "type": "string"
+    },
+    {
+      "key": "assetPath",
+      "value": "img/feature_importance.png",
+      "type": "string"
+    },
+    {
+      "key": "lastPrediction",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "legacyNoOsPrediction",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Service and model",
+      "item": [
+        {
+          "name": "Health: model and database",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/health",
+            "description": "Set expectedHealthStatus=degraded when intentionally checking a database outage."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const health = pm.response.json();",
+                  "pm.test(\"Expected service health\", function () {",
+                  "  pm.expect(health.status).to.equal(pm.variables.get(\"expectedHealthStatus\"));",
+                  "  pm.expect(health.model_loaded).to.equal(true);",
+                  "  pm.expect(health.db_ok).to.be.a(\"boolean\");",
+                  "  if (health.status === \"ok\") pm.expect(health.db_ok).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Options: dropdowns and No OS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/options",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const options = pm.response.json();",
+                  "pm.test(\"Form options are available\", function () {",
+                  "  pm.expect(options.cpu_models).to.be.an(\"array\").that.is.not.empty;",
+                  "  pm.expect(options.gpu_models).to.be.an(\"array\").that.is.not.empty;",
+                  "  pm.expect(options.dropdowns.opsys).to.include(pm.variables.get(\"noOsValue\"));",
+                  "  pm.expect(options.numeric_ranges.inches.min).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Model info: MAPE is a fraction",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/model-info",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const info = pm.response.json();",
+                  "pm.test(\"Model metrics and interval source\", function () {",
+                  "  pm.expect(info.n_features).to.be.a(\"number\").and.above(0);",
+                  "  [\"rmse\", \"mae\", \"r2\", \"mape\"].forEach(k => pm.expect(info.test_metrics[k]).to.be.a(\"number\"));",
+                  "  pm.expect(info.test_metrics.mape).to.be.at.least(0);",
+                  "  pm.expect([\"quantiles\", \"mape_fallback\"]).to.include(info.interval_source);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 Successful predictions",
+      "item": [
+        {
+          "name": "Predict: all fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "Numbers and booleans use unquoted variables. Successful requests append a database history record.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"{{opsys}}\",\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test(\"Prediction shape and price range\", function () {",
+                  "  pm.expect(result.predicted_price).to.be.a(\"number\").and.above(0);",
+                  "  pm.expect(result.price_low).to.be.a(\"number\").and.at.most(result.predicted_price);",
+                  "  pm.expect(result.price_high).to.be.a(\"number\").and.at.least(result.predicted_price);",
+                  "  pm.expect(result.model_name).to.be.a(\"string\");",
+                  "  pm.expect(result.warnings).to.be.an(\"array\");",
+                  "});",
+                  "pm.collectionVariables.set(\"lastPrediction\", result.predicted_price);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Predict: opsys omitted",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test(\"Prediction shape and price range\", function () {",
+                  "  pm.expect(result.predicted_price).to.be.a(\"number\").and.above(0);",
+                  "  pm.expect(result.price_low).to.be.a(\"number\").and.at.most(result.predicted_price);",
+                  "  pm.expect(result.price_high).to.be.a(\"number\").and.at.least(result.predicted_price);",
+                  "  pm.expect(result.model_name).to.be.a(\"string\");",
+                  "  pm.expect(result.warnings).to.be.an(\"array\");",
+                  "});",
+                  "pm.test(\"Exactly one missing-opsys warning\", function () {",
+                  "  const warnings = result.warnings.filter(w => w.indexOf(\"Не вказано: opsys.\") === 0);",
+                  "  pm.expect(warnings).to.have.lengthOf(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Predict: opsys null",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": null,\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test(\"Prediction shape and price range\", function () {",
+                  "  pm.expect(result.predicted_price).to.be.a(\"number\").and.above(0);",
+                  "  pm.expect(result.price_low).to.be.a(\"number\").and.at.most(result.predicted_price);",
+                  "  pm.expect(result.price_high).to.be.a(\"number\").and.at.least(result.predicted_price);",
+                  "  pm.expect(result.model_name).to.be.a(\"string\");",
+                  "  pm.expect(result.warnings).to.be.an(\"array\");",
+                  "});",
+                  "pm.test(\"Exactly one missing-opsys warning\", function () {",
+                  "  const warnings = result.warnings.filter(w => w.indexOf(\"Не вказано: opsys.\") === 0);",
+                  "  pm.expect(warnings).to.have.lengthOf(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Predict: opsys blank",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"   \",\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test(\"Prediction shape and price range\", function () {",
+                  "  pm.expect(result.predicted_price).to.be.a(\"number\").and.above(0);",
+                  "  pm.expect(result.price_low).to.be.a(\"number\").and.at.most(result.predicted_price);",
+                  "  pm.expect(result.price_high).to.be.a(\"number\").and.at.least(result.predicted_price);",
+                  "  pm.expect(result.model_name).to.be.a(\"string\");",
+                  "  pm.expect(result.warnings).to.be.an(\"array\");",
+                  "});",
+                  "pm.test(\"Exactly one missing-opsys warning\", function () {",
+                  "  const warnings = result.warnings.filter(w => w.indexOf(\"Не вказано: opsys.\") === 0);",
+                  "  pm.expect(warnings).to.have.lengthOf(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Predict: legacy Unknown OS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "Run before No OS to compare the existing model category with its canonical API alias.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"{{legacyOpsys}}\",\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test(\"Prediction shape and price range\", function () {",
+                  "  pm.expect(result.predicted_price).to.be.a(\"number\").and.above(0);",
+                  "  pm.expect(result.price_low).to.be.a(\"number\").and.at.most(result.predicted_price);",
+                  "  pm.expect(result.price_high).to.be.a(\"number\").and.at.least(result.predicted_price);",
+                  "  pm.expect(result.model_name).to.be.a(\"string\");",
+                  "  pm.expect(result.warnings).to.be.an(\"array\");",
+                  "});",
+                  "pm.collectionVariables.set(\"legacyNoOsPrediction\", result.predicted_price);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Predict: No OS alias",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"{{noOsValue}}\",\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const result = pm.response.json();",
+                  "pm.test(\"Prediction shape and price range\", function () {",
+                  "  pm.expect(result.predicted_price).to.be.a(\"number\").and.above(0);",
+                  "  pm.expect(result.price_low).to.be.a(\"number\").and.at.most(result.predicted_price);",
+                  "  pm.expect(result.price_high).to.be.a(\"number\").and.at.least(result.predicted_price);",
+                  "  pm.expect(result.model_name).to.be.a(\"string\");",
+                  "  pm.expect(result.warnings).to.be.an(\"array\");",
+                  "});",
+                  "const legacy = pm.collectionVariables.get(\"legacyNoOsPrediction\");",
+                  "if (legacy !== \"\" && legacy !== undefined) {",
+                  "  pm.test(\"No OS matches the existing model category\", function () { pm.expect(result.predicted_price).to.equal(Number(legacy)); });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 Validation errors",
+      "item": [
+        {
+          "name": "422: unknown company",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{invalidCompany}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"{{opsys}}\",\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "const errors = pm.response.json().detail;",
+                  "pm.test(\"Structured validation error\", function () {",
+                  "  pm.expect(errors).to.be.an(\"array\").that.is.not.empty;",
+                  "  pm.expect(errors.some(e => e.loc.indexOf(\"company\") >= 0)).to.equal(true);",
+                  "  errors.forEach(e => { pm.expect(e.msg).to.be.a(\"string\"); pm.expect(e.type).to.be.a(\"string\"); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "422: weight below lower bound",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"{{opsys}}\",\n  \"weight\": {{invalidWeight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "const errors = pm.response.json().detail;",
+                  "pm.test(\"Structured validation error\", function () {",
+                  "  pm.expect(errors).to.be.an(\"array\").that.is.not.empty;",
+                  "  pm.expect(errors.some(e => e.loc.indexOf(\"weight\") >= 0)).to.equal(true);",
+                  "  errors.forEach(e => { pm.expect(e.msg).to.be.a(\"string\"); pm.expect(e.type).to.be.a(\"string\"); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "422: missing CPU model",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"{{opsys}}\",\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "const errors = pm.response.json().detail;",
+                  "pm.test(\"Structured validation error\", function () {",
+                  "  pm.expect(errors).to.be.an(\"array\").that.is.not.empty;",
+                  "  pm.expect(errors.some(e => e.loc.indexOf(\"cpu_model\") >= 0)).to.equal(true);",
+                  "  errors.forEach(e => { pm.expect(e.msg).to.be.a(\"string\"); pm.expect(e.type).to.be.a(\"string\"); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "422: unexpected field",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{screen_width}},\n  \"screen_height\": {{screen_height}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"{{opsys}}\",\n  \"weight\": {{weight}},\n  \"unexpected\": \"not allowed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "const errors = pm.response.json().detail;",
+                  "pm.test(\"Structured validation error\", function () {",
+                  "  pm.expect(errors).to.be.an(\"array\").that.is.not.empty;",
+                  "  pm.expect(errors.some(e => e.loc.indexOf(\"unexpected\") >= 0)).to.equal(true);",
+                  "  errors.forEach(e => { pm.expect(e.msg).to.be.a(\"string\"); pm.expect(e.type).to.be.a(\"string\"); });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "422: screen height exceeds width",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company\": \"{{company}}\",\n  \"type_name\": \"{{type_name}}\",\n  \"inches\": {{inches}},\n  \"screen_width\": {{narrowScreenWidth}},\n  \"screen_height\": {{invalidScreenHeight}},\n  \"is_ips\": {{is_ips}},\n  \"is_touchscreen\": {{is_touchscreen}},\n  \"cpu_model\": \"{{cpu_model}}\",\n  \"cpu_ghz\": {{cpu_ghz}},\n  \"ram_gb\": {{ram_gb}},\n  \"storage_type\": \"{{storage_type}}\",\n  \"storage_gb\": {{storage_gb}},\n  \"gpu_model\": \"{{gpu_model}}\",\n  \"opsys\": \"{{opsys}}\",\n  \"weight\": {{weight}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "pm.test(\"Resolution validation\", function () { pm.expect(JSON.stringify(pm.response.json().detail)).to.include(\"screen_height\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "422: malformed JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/predict",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"company\": ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.response.to.have.status(422); });",
+                  "pm.test(\"JSON decode error\", function () { pm.expect(pm.response.json().detail[0].type).to.equal(\"json_invalid\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 Specification and docs",
+      "item": [
+        {
+          "name": "OpenAPI YAML: primary specification",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/openapi.yaml",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"YAML source is served\", function () {",
+                  "  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/yaml\");",
+                  "  pm.expect(pm.response.text()).to.include(\"openapi: 3.1.0\");",
+                  "  pm.expect(pm.response.text()).to.include(\"/api/predict:\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "OpenAPI JSON: same contract",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/openapi.json",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const spec = pm.response.json();",
+                  "pm.test(\"All route groups are documented\", function () {",
+                  "  pm.expect(spec.openapi).to.equal(\"3.1.0\");",
+                  "  [\"/api/predict\", \"/api/options\", \"/api/model-info\", \"/health\", \"/\", \"/analytics\", \"/static/{asset_path}\", \"/docs\", \"/docs/\", \"/redoc\", \"/openapi.yaml\", \"/openapi.json\"].forEach(p => pm.expect(spec.paths).to.have.property(p));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Swagger UI: /docs/",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/docs/",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Swagger loads YAML\", function () { pm.expect(pm.response.text()).to.include(\"/openapi.yaml\"); pm.expect(pm.response.text()).to.include(\"SwaggerUIBundle\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Swagger redirect: /docs -> /docs/",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/docs",
+            "description": "Automatic redirects are disabled for this request to check the actual 307 response."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 307\", function () { pm.response.to.have.status(307); });",
+                  "pm.test(\"Canonical docs URL\", function () { pm.expect(pm.response.headers.get(\"Location\")).to.match(/\\/docs\\/$/); });"
+                ]
+              }
+            }
+          ],
+          "response": [],
+          "protocolProfileBehavior": {
+            "followRedirects": false
+          }
+        },
+        {
+          "name": "ReDoc: same YAML source",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/redoc",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"ReDoc loads YAML\", function () { pm.expect(pm.response.text()).to.include(\"/openapi.yaml\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 Pages and static files",
+      "item": [
+        {
+          "name": "Index HTML (currently empty)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"HTML page\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/html\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Analytics HTML (currently empty)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/analytics",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"HTML page\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"text/html\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Static PNG",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/static/{{assetPath}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"PNG resource\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"image/png\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Static HEAD",
+          "request": {
+            "method": "HEAD",
+            "header": [],
+            "url": "{{baseUrl}}/static/{{assetPath}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"HEAD has no body\", function () { pm.expect(pm.response.text()).to.equal(\"\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "404: missing static file",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/static/__missing_smoke_file__.png",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"Not found error\", function () { pm.expect(pm.response.json().detail).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}

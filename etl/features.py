@@ -32,12 +32,12 @@ def parse_screen_resolution(df: pl.DataFrame) -> pl.DataFrame:
 
         pl.col("screen_resolution").str.contains(r"(?i)IPS").alias("is_ips"),
         pl.col("screen_resolution").str.contains(r"(?i)Touchscreen").alias("is_touchscreen")
-        
+
     ]).drop("screen_resolution")
 
     logger.debug(f"Parsed screen resolution and features: {df.head()}")
     return df
-    
+
 
 def parse_cpu(df: pl.DataFrame) -> pl.DataFrame:
     """ Парсинг стовпця Процесор
@@ -52,7 +52,7 @@ def parse_cpu(df: pl.DataFrame) -> pl.DataFrame:
         groups.struct.field("cpu_brand").alias("cpu_brand"),
         groups.struct.field("cpu_model").alias("cpu_model").str.strip_chars(),
         groups.struct.field("cpu_ghz").cast(pl.Float32).alias("cpu_ghz")
-        
+
     ]).drop("cpu")
 
     logger.debug(f"Parsed CPU information: {df.head()}")
@@ -78,7 +78,7 @@ def parse_memory(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def parse_gpu(df: pl.DataFrame) -> pl.DataFrame:
-    """ Парсинг стовпця Відеокарти 
+    """ Парсинг стовпця Відеокарти
         Приклад: 'Nvidia GTX 1050' -> gpu_brand: 'Nvidia', gpu_model: 'GTX 1050'"""
 
     logger.info("Parsing GPU information...")
@@ -89,7 +89,7 @@ def parse_gpu(df: pl.DataFrame) -> pl.DataFrame:
         groups.struct.field("gpu_brand").alias("gpu_brand"),
         groups.struct.field("gpu_model").alias("gpu_model").str.strip_chars()
     ]).drop("gpu")
-  
+
     logger.debug(f"Parsed GPU information: {df.head()}")
     return df
 
@@ -108,9 +108,9 @@ def normalize_categoricals(df: pl.DataFrame) -> pl.DataFrame:
     """Нормалізація значень для стовпців company, type_name, opsys, cpu_brand, gpu_brand"""
 
     logger.info("Encoding categorical features...")
-    
+
     known_type_names = ["Notebook", "Ultrabook", "Gaming", "2 in 1 Convertible", "Workstation", "Netbook", "Unknown"]
-    known_opsys = ["Windows 10", "Windows 10 S", "Windows 7", "Linux", "macOS", "Mac OS X", "Chrome OS", "No Os", "Unknown"]
+    known_opsys = ["Windows 10", "Windows 10 S", "Windows 7", "Linux", "macOS", "Mac OS X", "Chrome OS", "No OS", "Unknown"]
     known_cpu_brands = ["Intel", "AMD", "Unknown"]
     known_gpu_brands = ["Nvidia", "AMD", "Intel", "Unknown"]
 
@@ -122,7 +122,10 @@ def normalize_categoricals(df: pl.DataFrame) -> pl.DataFrame:
     df = df.with_columns([
         pl.col("company").cast(pl.Categorical, strict=False).fill_null("Unknown"),
         pl.col("type_name").cast(tn_cat, strict=False).fill_null("Unknown"),
-        pl.col("opSys").cast(os_cat, strict=False).fill_null("Unknown"),
+        pl.when(pl.col("opsys").str.strip_chars().str.to_lowercase() == "no os")
+        .then(pl.lit("No OS"))
+        .otherwise(pl.col("opsys").str.strip_chars())
+        .cast(os_cat, strict=False).fill_null("Unknown").alias("opsys"),
         pl.col("cpu_brand").cast(cpb_cat, strict=False).fill_null("Unknown"),
         pl.col("gpu_brand").cast(gpb_cat, strict=False).fill_null("Unknown"),
     ])
@@ -149,12 +152,9 @@ def build_feature_set(cleaned_df: pl.DataFrame) -> pl.DataFrame:
     ).alias("cpu_gpu_pair")
     )
 
-    df = df.rename({"raw_laps_id": "raw_id", "opsys": "opSys"})
+    df = df.rename({"raw_laps_id": "raw_id"})
 
     parsed_df = normalize_categoricals(df)
-    
+
     logger.info("Feature set built successfully.")
     return parsed_df
-
-
-    
